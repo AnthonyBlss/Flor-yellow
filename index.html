@@ -926,6 +926,36 @@
     <script>
         // Contador de clics
         let clickCount = 0;
+        let lastClickTime = 0;
+        let isProcessing = false;
+        
+        // Función optimizada para manejar clics/toques
+        function handleInteraction(x, y) {
+            const currentTime = Date.now();
+            
+            // Prevenir clics demasiado rápidos (debounce)
+            if (currentTime - lastClickTime < 100 || isProcessing) {
+                return;
+            }
+            
+            lastClickTime = currentTime;
+            clickCount++;
+            
+            console.log('Click count:', clickCount); // Para debug
+            
+            // Crear efecto normal
+            createClickSpark(x, y);
+            
+            // Si llega a 10 clics, crear mega explosión y resetear contador
+            if (clickCount >= 10) {
+                isProcessing = true;
+                setTimeout(() => {
+                    createMegaExplosion(x, y);
+                    clickCount = 0; // Resetear contador
+                    isProcessing = false;
+                }, 200);
+            }
+        }
         
         // Función para crear mini fuegos artificiales al hacer clic
         function createClickSpark(x, y) {
@@ -961,8 +991,13 @@
             }, 800);
         }
 
-        // Función para crear mega explosión
+        // Función para crear mega explosión (optimizada)
         function createMegaExplosion(x, y) {
+            // Detectar si es móvil para optimizar performance
+            const isMobile = window.innerWidth <= 768;
+            const explosionCount = isMobile ? 3 : 5;
+            const particlesPerExplosion = isMobile ? 12 : 20;
+            
             // Efecto de flash en pantalla completa
             const flash = document.createElement('div');
             flash.className = 'screen-flash';
@@ -975,25 +1010,25 @@
             }, 1000);
 
             // Crear múltiples explosiones grandes
-            for (let explosion = 0; explosion < 5; explosion++) {
+            for (let explosion = 0; explosion < explosionCount; explosion++) {
                 setTimeout(() => {
                     const megaContainer = document.createElement('div');
                     megaContainer.className = 'mega-explosion';
                     
                     // Posición con variación aleatoria
-                    const offsetX = (Math.random() - 0.5) * 200;
-                    const offsetY = (Math.random() - 0.5) * 200;
+                    const offsetX = (Math.random() - 0.5) * (isMobile ? 100 : 200);
+                    const offsetY = (Math.random() - 0.5) * (isMobile ? 100 : 200);
                     megaContainer.style.left = (x + offsetX) + 'px';
                     megaContainer.style.top = (y + offsetY) + 'px';
                     
-                    // Crear 20 partículas grandes por explosión
-                    for (let i = 0; i < 20; i++) {
+                    // Crear partículas grandes por explosión
+                    for (let i = 0; i < particlesPerExplosion; i++) {
                         const particle = document.createElement('div');
                         particle.className = 'mega-particle';
                         
                         // Calcular direcciones aleatorias para cada partícula
                         const angle = Math.random() * 360;
-                        const distance = 80 + Math.random() * 120;
+                        const distance = (isMobile ? 60 : 80) + Math.random() * (isMobile ? 80 : 120);
                         const dx = Math.cos(angle * Math.PI / 180) * distance;
                         const dy = Math.sin(angle * Math.PI / 180) * distance;
                         
@@ -1011,43 +1046,39 @@
                             megaContainer.parentNode.removeChild(megaContainer);
                         }
                     }, 2000);
-                }, explosion * 200);
+                }, explosion * (isMobile ? 150 : 200));
             }
         }
 
-        // Agregar event listener a toda la página
+        // Event listeners optimizados
+        let touchHandled = false;
+        
+        // Para desktop (mouse)
         document.addEventListener('click', function(e) {
-            clickCount++;
+            if (touchHandled) {
+                touchHandled = false;
+                return;
+            }
+            handleInteraction(e.clientX, e.clientY);
+        });
+
+        // Para móviles (touch) - usar touchend en lugar de touchstart
+        document.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            touchHandled = true;
             
-            // Crear efecto normal
-            createClickSpark(e.clientX, e.clientY);
-            
-            // Si llega a 10 clics, crear mega explosión y resetear contador
-            if (clickCount >= 10) {
-                setTimeout(() => {
-                    createMegaExplosion(e.clientX, e.clientY);
-                }, 200);
-                clickCount = 0; // Resetear contador
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                const touch = e.changedTouches[0];
+                handleInteraction(touch.clientX, touch.clientY);
             }
         });
 
-        // Agregar event listener para touch en móviles
+        // Prevenir scroll en móviles durante touch
         document.addEventListener('touchstart', function(e) {
-            e.preventDefault(); // Prevenir comportamientos por defecto
-            const touch = e.touches[0];
-            clickCount++;
-            
-            // Crear efecto normal
-            createClickSpark(touch.clientX, touch.clientY);
-            
-            // Si llega a 10 clics, crear mega explosión y resetear contador
-            if (clickCount >= 10) {
-                setTimeout(() => {
-                    createMegaExplosion(touch.clientX, touch.clientY);
-                }, 200);
-                clickCount = 0; // Resetear contador
+            if (e.touches.length === 1) {
+                e.preventDefault();
             }
-        });
+        }, { passive: false });
 
         // Efecto especial al hacer clic en la flor
         const flower = document.querySelector('.flower');
