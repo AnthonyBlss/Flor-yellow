@@ -946,8 +946,8 @@
             // Crear efecto normal
             createClickSpark(x, y);
             
-            // Si llega a 10 clics, crear mega explosión y resetear contador
-            if (clickCount >= 10) {
+            // Si llega a 20 clics, crear mega explosión y resetear contador
+            if (clickCount >= 20) {
                 isProcessing = true;
                 setTimeout(() => {
                     createMegaExplosion(x, y);
